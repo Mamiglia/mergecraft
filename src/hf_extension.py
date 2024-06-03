@@ -10,19 +10,23 @@ from .fisher import hess
 class HessianCallback:
     def __init__(self, model):
         self.model = model
-        self.hessians = []
+        self.hessian = [torch.zeros_like(param, requires_grad=False) for param in model.parameters()]
+        self.num_samples = 0
 
     def __call__(self, outputs: ModelOutput):
         H = hess(self.model, outputs.logits)
-        self.hessians.append(H)
+        self.add_sample(H)
         
         # detach as hf needs clean logits with no gradient
         outputs.logits = outputs.logits.detach()
+        
+    def add_sample(self, sample_hessian: List[torch.Tensor]):
+        self.num_samples += 1
+        self.hessian = [H + sample_h for H, sample_h in zip(self.hessian, sample_hessian)]
     
     @torch.no_grad()
     def get_hessian(self) -> List[torch.Tensor]:
-        hessians = zip(*self.hessians)
-        return [torch.stack(hessian).mean(0) for hessian in hessians]
+        return [hessian / self.num_samples for hessian in self.hessian]
     
     
 def add_callback(func, callback):
