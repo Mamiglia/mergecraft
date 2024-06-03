@@ -1,1 +1,2 @@
-from .fisher import fisher_matrix, hess
+from .fisher import hess
+from .hf_extension import HessianCallback, fisher_matrix

@@ -1,48 +1,54 @@
-from transformers import Trainer, TrainingArguments, TrainerCallback, TrainerState, TrainerControl
 from dataclasses import dataclass
-from typing import Dict, Union, Any
+from typing import Dict, List, Union, Any
 import torch
-from transformers.trainer_callback import CallbackHandler
 from torch import nn
 from types import MethodType
+from transformers import Pipeline
+from transformers.utils.generic import ModelOutput
+from .fisher import hess
 
-@dataclass
-class TrainerForwardState:
-    inputs: Dict[str, Union[torch.Tensor, Any]]
-    model: nn.Module
-    outputs: Dict[str, Union[torch.Tensor, Any]] = None
-    loss: torch.Tensor = None
-    
+class HessianCallback:
+    def __init__(self, model):
+        self.model = model
+        self.hessians = []
 
-# def on_forward_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-#     print(self)
-#     print(kwargs.keys())
-#     forward_state = TrainerForwardState(inputs=kwargs['inputs'], model=kwargs['model'])
-#     return self.call_event("on_forward_begin", args, state, control, forward_state=forward_state)
-
-# def on_forward_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-#     print(self)
-#     print(kwargs.keys())
-#     forward_state = TrainerForwardState(inputs=kwargs['inputs'], model=kwargs['model'], outputs=kwargs['outputs'], loss=kwargs['loss'])
-#     return self.call_event("on_forward_end", args, state, control, forward_state=forward_state)
-
-# CallbackHandler.on_forward_begin = MethodType(on_forward_begin, CallbackHandler)
-# CallbackHandler.on_forward_end = MethodType(on_forward_end, CallbackHandler)
-
-class TrainerWithForwardCallback(Trainer):
-    def __init__(self, forward_callback=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.forward_callback = forward_callback
-
-    def compute_loss(self, model, inputs, return_outputs=False):
-        """
-        Override the compute_loss method to add the callback events
-        """
+    def __call__(self, outputs: ModelOutput):
+        H = hess(self.model, outputs.logits)
+        self.hessians.append(H)
         
-        self.forward_callback.on_begin(inputs=inputs, model=model)
+        # detach as hf needs clean logits with no gradient
+        outputs.logits = outputs.logits.detach()
+    
+    @torch.no_grad()
+    def get_hessian(self) -> List[torch.Tensor]:
+        hessians = zip(*self.hessians)
+        return [torch.stack(hessian).mean(0) for hessian in hessians]
+    
+    
+def add_callback(func, callback):
+    def new_func(self, *args, **kwargs):
+        outputs = func.__func__(self, *args, **kwargs)
+        callback(outputs)
+        return outputs
+    return new_func
 
-        loss, outputs = super().compute_loss(model, inputs, return_outputs=True)
-    
-        self.forward_callback.on_end(inputs=inputs, model=model, outputs=outputs, loss=loss)
-        return (loss, outputs) if return_outputs else loss
-    
+
+def fisher_matrix(pipe: Pipeline, dataset: Any):
+    """Computes the Fisher Information Matrix diagonal approximation for the given dataset and model pipeline.
+        Args:
+            pipe (Pipeline): the pipeline model
+            dataset (Any): the dataset to compute the Fisher Information Matrix for
+        Returns:
+            List[torch.Tensor]: the Fisher Information Matrix diagonal approximation
+    """
+    model = pipe.model
+    hess_callback = HessianCallback(model)
+
+    # Modify the pipeline to compute the hessian
+    pipe.get_inference_context = lambda *_: torch.enable_grad   # enable gradient computation
+    pipe._forward = MethodType(add_callback(pipe._forward, hess_callback), pipe) # add the callback to the forward method
+
+    predicted = pipe(dataset)
+
+    hessian = hess_callback.get_hessian()
+    return hessian
