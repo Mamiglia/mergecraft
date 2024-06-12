@@ -6,12 +6,13 @@ from types import MethodType
 from transformers import Pipeline
 from transformers.utils.generic import ModelOutput
 from .fisher import hess
-from .weights_wrapper import Weights
+from .weights_wrapper import ArchitectureTensor
 
 class HessianCallback:
     def __init__(self, model):
         self.model = model
-        self.hessian = Weights.from_model(model, zero_init=True)
+        self.arch = ArchitectureTensor(model)
+        self.hessian = self.arch.zeros()
         self.num_samples = 0
 
     def __call__(self, outputs: ModelOutput):
@@ -23,10 +24,10 @@ class HessianCallback:
         
     def add_sample(self, sample_hessian: List[torch.Tensor]):
         self.num_samples += 1
-        self.hessian += sample_hessian
+        self.hessian += self.arch.to_tensor(sample_hessian)
     
     @torch.no_grad()
-    def get_hessian(self) -> Weights:
+    def get_hessian(self) -> torch.Tensor:
         return self.hessian / self.num_samples
     
     
@@ -38,7 +39,7 @@ def add_callback(func, callback):
     return new_func
 
 
-def fisher_matrix(pipe: Pipeline, dataset: Any) -> Weights:
+def fisher_matrix(pipe: Pipeline, dataset: Any) -> torch.Tensor:
     """Computes the Fisher Information Matrix diagonal approximation for the given dataset and model pipeline.
         Args:
             pipe (Pipeline): the pipeline model

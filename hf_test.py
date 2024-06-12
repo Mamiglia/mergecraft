@@ -25,4 +25,4 @@ print('begin computation.')
 fim = fisher_matrix(pipe, testset)
 print('end computation. This took:', time()-t0)
 
-print('Is FIM on cuda?', fim.weights[0].is_cuda)
+print('Is FIM on cuda?', fim.is_cuda)

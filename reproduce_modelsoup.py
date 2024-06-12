@@ -22,22 +22,19 @@ else:
     testset = KeyDataset(testset, 'sentence')
     models = ['aviator-neural/bert-base-uncased-sst2','howey/bert-base-uncased-sst2', 'yoshitomo-matsubara/bert-base-uncased-sst2', 'ikevin98/bert-base-uncased-finetuned-sst2', 'TehranNLP-org/bert-base-uncased-cls-sst2']
 
-fim = dict()
 modules = dict()
 
 for model in tqdm(models):
     # Load model
-    pipe = pipeline('text-classification', model=model, device='cuda:0', framework='pt')
+    pipe = pipeline('text-classification', model=model, device='cpu', framework='pt')
     modules[model] = pipe.model
-    
-    # compute
-    fim[model] = fisher_matrix(pipe, testset)
 
-fisher_merged = weighted_merging(modules.values, fim.values())
+
+fisher_merged = weighted_merging(modules.values(), [1 for _ in modules])
 pipe.model = fisher_merged
 
 # Save the merged weights
-pipe.model.save_pretrained('./artifacts/merged_weights_rte')
+pipe.model.save_pretrained('./artifacts/merged_weights_soup_rte')
 
 
 from src import evaluate_glue_pipeline
