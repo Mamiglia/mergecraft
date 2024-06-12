@@ -1,89 +1,119 @@
+from copy import deepcopy
 import torch
 from torch import nn
 from collections import OrderedDict
-from typing import Dict, Callable, List, Any#,Self # need python 3.11
-import inspect
-import numbers
+from typing import Dict, Callable, List, Any, Optional#,Self # need python 3.11
+from numbers import Number
+from torch import Tensor
 
-class Weights:
-    def __init__(self, parameters : Dict[str, torch.Tensor] | List[torch.Tensor], names : List[str] = None):
-        if inspect.isgenerator(parameters):
-            parameters = list(parameters)
+class ArchitectureTensor:
+    '''defines a map between the model's parameters and a tensor'''
+    def __init__(self, model:nn.Module) -> None:
+        self.arch = model
+        self.layers_shape = [p.shape for p in model.parameters()]
+        self.total_size = sum(p.numel() for p in model.parameters())
+        
+    def to_tensor(self, params: nn.Module | List[torch.Tensor]) -> Tensor:
+        '''Converts the model to a tensor'''
+        if isinstance(params, nn.Module):
+            return self.to_tensor(params.parameters())
+        data = torch.cat([p.flatten() for p in params])
+        return data.clone().detach().cpu()
+
+    def to_model(self, tensor: Optional[Tensor]= None):
+        '''Converts the tensor to a model'''
+        assert tensor.numel() == self.total_size, f'The tensor size {tensor.numel()} does not match the model size {self.total_size}'
+ 
+        i = 0
+        new_model = deepcopy(self.arch)
+        for name, param in new_model.named_parameters():
+            size = param.numel()
+            param.data = tensor[i:i+size].reshape(param.shape)
+            i += size
             
-        if isinstance(parameters[0], tuple):
-            self.names = [p[0] for p in parameters] if names is None else names
-            self.weights = [p[1] for p in parameters]
-        else:
-            self.names = names if names is not None else [f'param_{i}' for i,_ in enumerate(parameters)]
-            self.weights = parameters 
+        return new_model
+    
+    def zeros(self):
+        '''Returns a tensor of zeros with the same size as the model'''
+        return torch.zeros(self.total_size, dtype=torch.float32, device='cpu', requires_grad=False)
+    
+    def grad_mask(self):
+        '''Returns a mask of the parameters that require gradients'''
+        require_grads = [torch.ones(p.size(), dtype=bool).flatten() & p.requires_grad for p in self.arch.parameters()]
+        return torch.cat(require_grads)
+        
+    
 
-    @property
-    def named_parameters(self):
-        return OrderedDict(zip(self.names, self.weights))
-    
-    def __eq__(self, other):
-        return all([torch.equal(s, o) for s, o in zip(self.weights, other.weights)])
-    
-    def __pair_op__(self, other, op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        if not isinstance(other, Weights):
-            other = Weights(other, self.names)
-        return Weights([op(s, o) for s, o in zip(self.weights, other.weights)], self.names)
-    
-    def __scalar_op__(self, scalar, op: Callable[[torch.Tensor, Any], torch.Tensor]):
-        return Weights([op(s, scalar) for s in self.weights], self.names)
-    
-    def __add__(self, other):
-        return self.__pair_op__(other, torch.add)
-    
-    def __sub__(self, other):
-        return self.__pair_op__(other, torch.sub)
-    
-    def __mul__(self, other):
-        if not isinstance(other, numbers.Number) and not isinstance(other, torch.Tensor):
-            return self.__pair_op__(other, torch.mul)
-        return self.__scalar_op__(other, torch.mul)
-    
-    def __truediv__(self, other):
-        if not isinstance(other, numbers.Number) and not isinstance(other, torch.Tensor):
-            return self.__pair_op__(other, torch.div)
-        return self.__scalar_op__(other, torch.div)
-    
-    def __i_pair_op__(self, other : List[torch.Tensor], op: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]):
-        if isinstance(other, Weights):
-            other = other.weights
-        self.weights = [op(s, o) for s, o in zip(self.weights, other)]
-        return self
-    
-    def __i_scalar_op__(self, scalar, op: Callable[[torch.Tensor, Any], torch.Tensor]):
-        self.weights = [op(s, scalar) for s in self.weights]
-        return self
+# class ModelArithmetics(nn.Module):
+#     def __init__(self, model: nn.Module):
+#         super().__init__()
+#         self.model = deepcopy(model)
+        
+#         self.names, self.weights = list(zip(*self.model.named_parameters()))
 
-    def __iadd__(self, other):
-        return self.__i_pair_op__(other, torch.add)
+#     @property
+#     def named_parameters(self):
+#         return OrderedDict(zip(self.names, self.weights))
     
-    def __isub__(self, other):
-        return self.__i_pair_op__(other, torch.sub)
+#     def __add__(self, other):
+#         return self.__pair_op__(other, torch.add)
     
-    def __imul__(self, other):
-        if not isinstance(other, numbers.Number) and not isinstance(other, torch.Tensor):
-            return self.__i_pair_op__(other, torch.mul)
-        return self.__i_scalar_op__(other, torch.mul)
+#     def __sub__(self, other):
+#         return self.__pair_op__(other, torch.sub)
     
-    def __itruediv__(self, other):
-        if not isinstance(other, numbers.Number) and not isinstance(other, torch.Tensor):
-            return self.__i_pair_op__(other, torch.div)
-        return self.__i_scalar_op__(other, torch.div)
+#     def __mul__(self, other):
+#         if isinstance(other, Number) or isinstance(other, torch.Tensor):
+#             return self.__scalar_op__(other, torch.mul)
+#         return self.__pair_op__(other, torch.mul)
     
-    def to(self, arg):
-        return self.__i_scalar_op__(arg, lambda x, y: x.to(y))
+#     def __truediv__(self, other):
+#         if isinstance(other, Number) or isinstance(other, torch.Tensor):
+#             return self.__scalar_op__(other, torch.div)
+#         return self.__pair_op__(other, torch.div)
     
-    @staticmethod
-    def from_model(model: nn.Module, zero_init: bool = False):
-        named_parameters = model.named_parameters()
-        if zero_init:
-            named_parameters = [(name,torch.zeros_like(param, requires_grad=False)) for name,param in named_parameters]
-        return Weights(named_parameters)
+#     def __pair_op__(self, other : List[torch.Tensor] | nn.Module | Any, op: Callable[[Tensor, Tensor], Tensor]):
+#         if isinstance(other, ModelArithmetics):
+#             other = other.weights
+#         if isinstance(other, nn.Module):
+#             other = list(other.parameters())
+#         self.weights = [op(s, o) for s, o in zip(self.weights, other)]
+#         return self
     
+#     def __scalar_op__(self, scalar: Number | Tensor, op: Callable[[Tensor, Any], Tensor]):
+#         self.weights = [op(s, scalar) for s in self.weights]
+#         return self
+
+    # def __iadd__(self, other):
+    #     return self.__i_pair_op__(other, torch.add)
+    
+    # def __isub__(self, other):
+    #     return self.__i_pair_op__(other, torch.sub)
+    
+    # def __imul__(self, other):
+    #     if isinstance(other, Number) or isinstance(other, torch.Tensor):
+    #         return self.__i_scalar_op__(other, torch.mul)
+    #     return self.__i_pair_op__(other, torch.mul)
+    
+    # def __itruediv__(self, other):
+    #     if isinstance(other, Number) or isinstance(other, torch.Tensor):
+    #         return self.__i_scalar_op__(other, torch.div)
+    #     return self.__i_pair_op__(other, torch.div)
+    
+    # def __eq__(self, other):
+    #     '''Computes a element-wise comparison between the weights of two models. returning a mask'''
+    #     mask = self.copy()
+    #     return mask.__pair_op__(other, torch.eq)
+    
+    # def to_model(self):
+    #     return self.model
+    
+    # def copy(self):
+    #     return deepcopy(self)
+    
+    # @staticmethod
+    # def zeros_like(model: nn.Module):
+    #     return ModelArithmetics(model) * 0
+
 
     
     

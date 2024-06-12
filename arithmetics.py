@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from src.weights_wrapper import Weights
+from src.weights_wrapper import ArchitectureTensor
 from datasets import load_dataset
 from transformers import pipeline
 
@@ -13,8 +13,9 @@ pipe2 = pipeline('text-classification', model=models[1], device='cuda:0', framew
 model1 = pipe1.model
 model2 = pipe2.model
 
-weights1 = Weights(model1.named_parameters())
-weights2 = Weights(model2.named_parameters())
+arch2tensor = ArchitectureTensor(model1)
+weights1 = arch2tensor.to_tensor(model1)
+weights2 = arch2tensor.to_tensor(model2)
 
 add = weights1 + weights2
 sub = weights1 - weights2   
@@ -23,3 +24,4 @@ div = weights1 / weights2
 mul_scalar = weights1 * 2
 div_scalar = weights1 / 2
 
+task1 = arch2tensor.to_model(sub)
