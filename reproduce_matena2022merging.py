@@ -33,7 +33,7 @@ for model in tqdm(models):
     # compute
     fim[model] = fisher_matrix(pipe, testset)
 
-fisher_merged = weighted_merging(modules.values, fim.values())
+fisher_merged = weighted_merging(modules.values(), fim.values())
 pipe.model = fisher_merged
 
 # Save the merged weights
