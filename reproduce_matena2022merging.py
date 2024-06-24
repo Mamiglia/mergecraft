@@ -29,11 +29,11 @@ for model in tqdm(models):
     # Load model
     pipe = pipeline('text-classification', model=model, device='cuda:0', framework='pt')
     modules[model] = pipe.model
-    
+
     # compute
     fim[model] = fisher_matrix(pipe, testset)
 
-fisher_merged = weighted_merging(modules.values(), fim.values())
+fisher_merged = weighted_merging(modules.values(), fim.values()).cuda()
 pipe.model = fisher_merged
 
 # Save the merged weights

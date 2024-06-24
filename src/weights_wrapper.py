@@ -12,13 +12,14 @@ class ArchitectureTensor:
         self.arch = model
         self.layers_shape = [p.shape for p in model.parameters()]
         self.total_size = sum(p.numel() for p in model.parameters())
+        self.device = next(model.parameters()).device
         
     def to_tensor(self, params: nn.Module | List[torch.Tensor]) -> Tensor:
         '''Converts the model to a tensor'''
         if isinstance(params, nn.Module):
             return self.to_tensor(params.parameters())
         data = torch.cat([p.flatten() for p in params])
-        return data.clone().detach().cpu()
+        return data.clone().detach()
 
     def to_model(self, tensor: Optional[Tensor]= None):
         '''Converts the tensor to a model'''
@@ -35,11 +36,11 @@ class ArchitectureTensor:
     
     def zeros(self):
         '''Returns a tensor of zeros with the same size as the model'''
-        return torch.zeros(self.total_size, dtype=torch.float32, device='cpu', requires_grad=False)
+        return torch.zeros(self.total_size, dtype=torch.float32, device=self.device, requires_grad=False)
     
     def grad_mask(self):
         '''Returns a mask of the parameters that require gradients'''
-        require_grads = [torch.ones(p.size(), dtype=bool).flatten() & p.requires_grad for p in self.arch.parameters()]
+        require_grads = [torch.ones(p.size(), dtype=bool, device=self.device).flatten() & p.requires_grad for p in self.arch.parameters()]
         return torch.cat(require_grads)
         
     
