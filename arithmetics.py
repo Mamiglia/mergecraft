@@ -1,27 +1,47 @@
-import torch
 from torch import nn
-from src.weights_wrapper import ArchitectureTensor
-from datasets import load_dataset
+from src.arithmetics.weights_wrapper import ArchitectureTensor
 from transformers import pipeline
 
+# Create pipelines for text classification using different models
+gpt2 = pipeline('text-generation', model='openai-community/gpt2', device='cuda:0', framework='pt')
+gpt2_toxic = pipeline('text-generation', model='heegyu/gpt2-toxic', device='cuda:0', framework='pt')
 
-# Load model
-models = ['textattack/bert-base-uncased-RTE', 'yoshitomo-matsubara/bert-base-uncased-rte', 'Ruizhou/bert-base-uncased-finetuned-rte', 'howey/bert-base-uncased-rte', 'anirudh21/bert-base-uncased-finetuned-rte']
-pipe1 = pipeline('text-classification', model=models[0], device='cuda:0', framework='pt')
-pipe2 = pipeline('text-classification', model=models[1], device='cuda:0', framework='pt')
+# Get the underlying models from the pipelines
+model1 = gpt2.model
+model2 = gpt2_toxic.model
 
-model1 = pipe1.model
-model2 = pipe2.model
-
+# Create an instance of ArchitectureTensor to convert model weights to tensors
 arch2tensor = ArchitectureTensor(model1)
+
+# Convert model weights to tensors:
+# The model's weights are mapped onto a simple torch tensor
+# This operation allows the weights to be manipulated using arithmetic operations
 weights1 = arch2tensor.to_tensor(model1)
 weights2 = arch2tensor.to_tensor(model2)
 
-add = weights1 + weights2
-sub = weights1 - weights2   
-mul = weights1 * weights2
-div = weights1 / weights2
-mul_scalar = weights1 * 2
-div_scalar = weights1 / 2
+print('Size of tensor:', weights1.size())
 
+# Perform arithmetic operations on the weights
+add = weights1 + weights2  # Addition
+sub = weights1 - weights2  # Subtraction
+mul = weights1 * weights2  # Multiplication
+div = weights1 / weights2  # Division
+mul_scalar = weights1 * 2  # Scalar multiplication
+div_scalar = weights1 / 2  # Scalar division
+
+# Convert the result of subtraction back to a model
 task1 = arch2tensor.to_model(sub)
+
+
+# Detoxfication of a toxic model
+detoxified = arch2tensor.to_model(weights1 - 0.1 * (weights2 - weights1))
+
+PROMPT = 'You should really '
+toxic_out  = gpt2_toxic(PROMPT, max_length=100, num_return_sequences=5)
+normal_out = gpt2(PROMPT, max_length=100, num_return_sequences=5)
+
+gpt2.model = detoxified
+detoxified_out = gpt2(PROMPT, max_length=100, num_return_sequences=5)
+print('Toxic model:\n', toxic_out)
+print('Normal model:\n', normal_out)
+print('Detoxified model:\n', detoxified_out)
