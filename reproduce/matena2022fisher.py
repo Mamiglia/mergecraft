@@ -37,7 +37,7 @@ fisher_merged = weighted_merging(modules.values(), fim.values()).cuda()
 pipe.model = fisher_merged
 
 # Save the merged weights
-pipe.model.save_pretrained('./artifacts/merged_weights_rte')
+pipe.model.save_pretrained(f'./artifacts/merged_weights_fisher_{DATASET}_{SPLIT}.pt')
 
 
 from src import evaluate_glue_pipeline

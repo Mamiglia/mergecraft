@@ -6,7 +6,7 @@ from types import MethodType
 from transformers import Pipeline
 from transformers.utils.generic import ModelOutput
 from .fisher import hess
-from .weights_wrapper import ArchitectureTensor
+from ..arithmetics.weights_wrapper import ArchitectureTensor
 
 class HessianCallback:
     def __init__(self, model):
@@ -32,6 +32,14 @@ class HessianCallback:
     
     
 def add_callback(func, callback):
+    '''This functions injects a callback into a method of a class.
+    
+    Args:
+        func (function): the method to inject the callback into
+        callback (function): the callback to inject
+    Returns:    
+        function: the new method with the callback injected
+    '''
     def new_func(self, *args, **kwargs):
         outputs = func.__func__(self, *args, **kwargs)
         callback(outputs)

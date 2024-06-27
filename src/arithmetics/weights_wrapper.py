@@ -7,7 +7,23 @@ from numbers import Number
 from torch import Tensor
 
 class ArchitectureTensor:
-    '''defines a map between the model's parameters and a tensor'''
+    '''Defines a map between the model's parameters and a tensor. 
+        It takes in input a torch model and defines a mapping between the model's parameters and a tensor.
+        In particular this mapping is valid also for any other model with the same architecture.
+        The tensor can be converted back to a model with the same architecture.
+        The tensor can be used to store the model's parameters and can be used to perform operations on the model's parameters.
+        
+        Example:
+            model_a = nn.Linear(10, 5)
+            model_b = nn.Linear(10, 5)
+            arch2tensor = ArchitectureTensor(model_a)
+            
+            tensor_a = arch2tensor.to_tensor(model_a)
+            tensor_b = arch2tensor.to_tensor(model_b)
+            tensor_c = tensor_a + tensor_b
+            
+            model_c = arch2tensor.to_model(tensor_c)
+    '''
     def __init__(self, model:nn.Module) -> None:
         self.arch = model
         self.layers_shape = [p.shape for p in model.parameters()]
@@ -22,7 +38,7 @@ class ArchitectureTensor:
         return data.clone().detach()
 
     def to_model(self, tensor: Optional[Tensor]= None):
-        '''Converts the tensor to a model'''
+        '''Converts the tensor rappresenting an architecture to a model'''
         assert tensor.numel() == self.total_size, f'The tensor size {tensor.numel()} does not match the model size {self.total_size}'
  
         i = 0
@@ -37,6 +53,11 @@ class ArchitectureTensor:
     def zeros(self):
         '''Returns a tensor of zeros with the same size as the model'''
         return torch.zeros(self.total_size, dtype=torch.float32, device=self.device, requires_grad=False)
+    
+    def name_mask(self, names: List[str]):
+        '''Returns a mask of the parameters that have the given names'''
+        named = [torch.ones_like(p, dtype=bool, device=self.device).flatten() & (name in names) for name,p in self.arch.named_parameters()]
+        return torch.cat(named)
     
     def grad_mask(self):
         '''Returns a mask of the parameters that require gradients'''
