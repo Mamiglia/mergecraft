@@ -12,7 +12,7 @@ from mc import *
 
 # Load dataset and subset
 SUBSET = None
-DATASET = 'mrpc'#'rte' # 'sst2', 'mrpc'
+DATASET = 'sst2'#'rte' # 'sst2', 'mrpc'
 SPLIT = 'validation' # 'validation', 'test'
 
 dataset = load_dataset('glue', DATASET)
@@ -32,8 +32,8 @@ match DATASET:
         raise ValueError(f'Dataset {DATASET} not supported')
     
 METHODS = {
-    'fisher': fisher,
     'task': task,
+    'fisher': fisher,
     'soup': soup,
     'dare': dare,
     'stock': stock,
@@ -63,13 +63,13 @@ for name, merge_method in METHODS.items():
     if '/' not in name:
         models = MODELS if 'base_index' in KWARGS[name].keys() else MODELS[1:]
         pipe = merge_method(models, task='text-classification', **KWARGS[name])
-        # Save the merged weights
-        pipe.model.save_pretrained(f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}')
-        pipe = pipeline('text-classification', model=f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}', device='cuda:1', framework='pt')
     else:
-        pipe = pipeline('text-classification', model=name, device='cuda:1', framework='pt')
+        pipe = pipeline('text-classification', model=name, device='cuda:0', framework='pt')
     dt = time.time()-t0
+    # Save the merged weights
     print('Merging completed. Time elapsed:', dt)
+    pipe.model.save_pretrained(f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}')
+    pipe = pipeline('text-classification', model=f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}', device='cuda:0', framework='pt', tokenizer=MODELS[0])
 
     print('Evaluating the merged model')
     res = evaluate_glue_pipeline(pipe, DATASET, split=SPLIT)
