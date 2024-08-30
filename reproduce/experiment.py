@@ -5,7 +5,6 @@ import time
 
 import pandas as pd
 from datasets import load_dataset
-from lib import *
 from transformers import pipeline
 from transformers.pipelines.pt_utils import KeyDataset, KeyPairDataset
 
@@ -33,9 +32,9 @@ match DATASET:
         raise ValueError(f'Dataset {DATASET} not supported')
     
 METHODS = {
+    'fisher': fisher,
     'task': task,
     'soup': soup,
-    'fisher': fisher,
     'dare': dare,
     'stock': stock,
     'ties': ties
@@ -47,11 +46,11 @@ KWARGS.update({
     'task': {'base_index': 0, 'passthrough_layers': ['classifier.bias', 'classifier.weight']},
     'soup': {},
     'fisher': dict(
-        pipelines=[pipeline('text-classification', model=model, device='cuda:0') for model in MOEDLS],
+        pipelines=[pipeline('text-classification', model=model, device='cuda:0') for model in MODELS[1:]],
         dataset=subset),
     'dare': dict(p=0.4, base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight']),
     'stock': {'base_index': 0, 'passthrough_layers': ['classifier.bias', 'classifier.weight']},
-    'ties': dict(k=0.5, base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight']),
+    'ties': dict(k=0.6, base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight']),
 })
 RECORDS = []
 
