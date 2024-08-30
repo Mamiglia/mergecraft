@@ -1,9 +1,12 @@
 import torch
 from torch import nn, Tensor
-from typing import List, Optional
-from .base import Merger
+from typing import List, Optional, Iterable
+from .base import model_merge
+from src.arithmetics.weights_wrapper import StateDict, dict_map
 
-def stock_merging(centroid: Tensor, pretrained: Tensor, N:int) -> Tensor:
+
+@dict_map	
+def stock_layer_merging(models: Iterable[Tensor], base_index:int=0) -> Tensor:
     """
     Implements the stock merging from the paper: jang2024model.
     This method takes in input a handful of models and computes their average.
@@ -14,21 +17,16 @@ def stock_merging(centroid: Tensor, pretrained: Tensor, N:int) -> Tensor:
     - base (int): the index of the base model in the list (pre trained)
     
     Returns:
-    - Tensor: merged model
+    - Tensor: merged model      
     """
-    theta = pretrained.dot(centroid) / max(pretrained.norm() * centroid.norm(), 1e-8)
+    pretrained = models.pop(base_index)
+    N = len(models)
+    centroid = sum(models) / N
+    theta = nn.functional.cosine_similarity(centroid.flatten(), pretrained.flatten(), dim=0)
     T = N*theta / (1 + (N-1)*theta) # this is the ratio of the centroid to the anchor
-    print('Ratio:', T, 'Angle between centroid and pretrained:', theta)
     return T*centroid + (1-T)*pretrained
 
-
-class StockMerger(Merger):
-    def __init__(self, models: List[Tensor], task:Optional[str] = None, base_index:int=0, passthrough_layers:List[str]=[], **merge_args):
-        super().__init__(models, task, passthrough_layers, **merge_args)
-        self.pretrained = self.tensors.pop(base_index)
-
-    def merge(self) -> nn.Module: 
-        merged_weights = stock_merging(self.baseline, self.pretrained, len(self.tensors))
-        
-        return self.tensor2model(merged_weights)
-    
+@model_merge
+def stock(models: Iterable[StateDict], base_index:int=0, **kwargs) -> StateDict:
+    '''Merges the models by taking the mean of the weights'''
+    return stock_layer_merging(models, base_index)

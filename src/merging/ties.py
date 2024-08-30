@@ -1,11 +1,12 @@
 import torch
 from torch import nn, Tensor
-from src.arithmetics.weights_wrapper import ArchitectureTensor
-from typing import Iterable
-from .base import Merger
+from typing import List, Optional, Iterable
+from .base import model_merge
+from src.arithmetics.weights_wrapper import StateDict, dict_map
 import numpy as np
 
-def ties_merging(models: Iterable[Tensor], pretrained: Tensor, k: float = 0.1, full_quantile_computation: bool = False) -> Tensor:
+@dict_map
+def ties_layer_merging(models: Iterable[Tensor], base_index:int=0, k: float = 0.1) -> Tensor:
     """
     Implements the model merging algorithm from the paper:
 
@@ -18,28 +19,20 @@ def ties_merging(models: Iterable[Tensor], pretrained: Tensor, k: float = 0.1, f
     Returns:
     - Tensor: merged model
     """
+    pretrained = models.pop(base_index)
     tasks = torch.stack([model - pretrained for model in models])  # list of task vectors
     del models
     
     # trim: keep only top-k% magnitude of the weights
-    magnitudes = tasks.numpy().astype(np.half)
-    if not full_quantile_computation:
-        # takes a subset to ease computation
-        subset = int((1.96*np.sqrt(k*(1-k))/0.005)**2)
-        magnitudes = np.random.choice(magnitudes.flat, subset, replace=False)
-        print('Subset:', subset)
-    magnitudes = np.abs(magnitudes)
-    threshold = np.quantile(magnitudes, 1 - k)
+    magnitudes = np.abs(tasks.numpy(force=True).astype(np.half))
+    threshold = np.quantile(magnitudes.flat, 1 - k)
     del magnitudes
-    print(threshold)
     is_topk = tasks.abs() >= threshold
-    print('Selected:', is_topk.to(float).mean())
     tasks[~is_topk] = 0
 
     # elect: for each parameter find the sign with the highest total magnitude
     signs = tasks.sum(dim=0).sign()
     agrees_elect_sign = tasks.sign() == signs.unsqueeze(0)
-    print(agrees_elect_sign.shape)
     del signs
     tasks[~agrees_elect_sign] = 0
 
@@ -51,14 +44,8 @@ def ties_merging(models: Iterable[Tensor], pretrained: Tensor, k: float = 0.1, f
     merged_task[selected == 0] = 0
     return pretrained + merged_task
 
-
-class TIESMerger(Merger):
-    def __init__(self, models: Iterable[nn.Module], base_index:int=0, k: int = 0.1, **merge_args):
-        super().__init__(models, **merge_args)
-        self.k = k
-        self.pretrained = self.tensors.pop(base_index)
-
-    def merge(self) -> nn.Module:
-        merged_weights = ties_merging(self.tensors, self.pretrained, self.k)
-        return self.tensor2model(merged_weights)
-        
+@model_merge
+def ties(models: Iterable[StateDict], base_index:int=0, k: float = 0.1, **kwargs):
+    '''Merges the models by taking the mean of the weights'''
+    
+    return ties_layer_merging(models, base_index, k)
