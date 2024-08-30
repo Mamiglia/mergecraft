@@ -5,13 +5,14 @@ from mergecraft.arithmetics.weights_wrapper import StateDict
 from typing import Iterable, Optional, Callable
 from transformers import pipeline 
 
-def statedict2model(sd:StateDict, model:str|nn.Module|dict, **kwargs) -> str|nn.Module|dict:
+def statedict2model(sd:StateDict, model:str|nn.Module|dict, verbose:bool=False, **kwargs) -> str|nn.Module|dict:
     '''Converts a state_dict to a model'''
     if isinstance(model, str):
         task = kwargs.get('task')
         pipe = pipeline(task, model, framework='pt', device='cpu')
         missing_keys = pipe.model.load_state_dict(sd, strict=False)
-        print('Missing keys:', missing_keys)
+        if verbose:
+            print('Missing keys:', missing_keys)
         return pipe
     if isinstance(model, nn.Module):
         model = deepcopy(model)
@@ -24,7 +25,7 @@ def statedict2model(sd:StateDict, model:str|nn.Module|dict, **kwargs) -> str|nn.
     
 def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
     def wrapper(models: Iterable[str | nn.Module | dict],
-                passthrough_layers:Iterable[str] = [],
+                passthrough_layers:Iterable[str] = [], verbose:bool = False,
                 *args, **kwargs) -> nn.Module:
         if isinstance(models[-1], str):
             task = kwargs.get('task')
@@ -55,5 +56,5 @@ def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
         merged_weights = func(state_dicts, *args, **kwargs)
         merged_weights.update(passthrough_weights)
         
-        return statedict2model(merged_weights, models[-1], **kwargs)
+        return statedict2model(merged_weights, models[-1], verbose=verbose, **kwargs)
     return wrapper
