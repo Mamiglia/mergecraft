@@ -1,5 +1,5 @@
 from torch import nn
-from src.arithmetics.weights_wrapper import ArchitectureTensor
+from src.arithmetics.weights_wrapper import ModelTensorMapper
 from transformers import pipeline
 
 # Create pipelines for text classification using different models
@@ -11,7 +11,7 @@ model1 = gpt2.model
 model2 = gpt2_toxic.model
 
 # Create an instance of ArchitectureTensor to convert model weights to tensors
-arch2tensor = ArchitectureTensor(model1)
+arch2tensor = ModelTensorMapper(model1)
 
 # Convert model weights to tensors:
 # The model's weights are mapped onto a simple torch tensor
@@ -36,7 +36,7 @@ task1 = arch2tensor.to_model(sub)
 # Detoxfication of a toxic model
 detoxified = arch2tensor.to_model(weights1 - 0.1 * (weights2 - weights1))
 
-PROMPT = 'You should really '
+PROMPT = 'I\'m not saying you\'re stupid, but'
 toxic_out  = gpt2_toxic(PROMPT, max_length=100, num_return_sequences=5)
 normal_out = gpt2(PROMPT, max_length=100, num_return_sequences=5)
 
