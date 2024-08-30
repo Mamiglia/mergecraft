@@ -9,7 +9,7 @@ from lib import *
 from transformers import pipeline
 from transformers.pipelines.pt_utils import KeyDataset, KeyPairDataset
 
-from src import evaluate_glue_pipeline
+from mc import *
 
 # Load dataset and subset
 SUBSET = None
@@ -42,10 +42,9 @@ METHODS = {
 }
 # METHODS.update({m:m for i,m in enumerate(MODELS)})
 
-# KWARGS = {f'passthrough_{i}': {'idx': i} for i in range(len(MODELS))}
+KWARGS = {}
 KWARGS.update({
     'task': {'base_index': 0, 'passthrough_layers': ['classifier.bias', 'classifier.weight']},
-    # 'weighted': {'weights' : [0.7256317689530686, 0.6714801444043321, 0.6859205776173285, 0.6534296028880866, 0.6642599277978339]},
     'soup': {},
     'fisher': dict(
         pipelines=[pipeline('text-classification', model=model, device='cuda:0') for model in MOEDLS],
@@ -59,19 +58,17 @@ RECORDS = []
 
 pipe = pipeline('text-classification', model=MODELS[-1], device='cpu', framework='pt')
 
-for method, _ in METHODS.items():
-    print(f'Running method {method}')
+for name, merge_method in METHODS.items():
+    print(f'Running method {name}')
     t0 = time.time()
-    if '/' not in method:
-        models = MODELS if 'base_index' in KWARGS[method].keys() else MODELS[1:]
-        merger = METHODS[method](models, task='text-classification', **KWARGS[method])
-        if pipe.device.type == 'cuda':
-            pipe = pipeline('text-classification', model=MODELS[-1], device='cpu', framework='pt')
-        pipe.model = merger.merge()
+    if '/' not in name:
+        models = MODELS if 'base_index' in KWARGS[name].keys() else MODELS[1:]
+        pipe = merge_method(models, task='text-classification', **KWARGS[name])
         # Save the merged weights
-        pipe.model.save_pretrained(f'./artifacts/merged_weights_{method}_{DATASET}_{SPLIT}')
+        pipe.model.save_pretrained(f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}')
+        pipe = pipeline('text-classification', model=f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}', device='cuda:1', framework='pt')
     else:
-        pipe = pipeline('text-classification', model=method, device='cuda:1', framework='pt')
+        pipe = pipeline('text-classification', model=name, device='cuda:1', framework='pt')
     dt = time.time()-t0
     print('Merging completed. Time elapsed:', dt)
 
@@ -80,10 +77,10 @@ for method, _ in METHODS.items():
     print(res)
 
     record = {
-        'method': method,
+        'method': name,
         'dataset': DATASET,
         'split': SPLIT,
-        'directory': f'./artifacts/merged_weights_{method}_{DATASET}_{SPLIT}',
+        'directory': f'./artifacts/merged_weights_{name}_{DATASET}_{SPLIT}',
         'time': dt, 
         **res
     }
