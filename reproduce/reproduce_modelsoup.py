@@ -1,5 +1,5 @@
 import time
-from src import WeightedMerger
+from lib import *
 from datasets import load_dataset
 from transformers import pipeline
 
@@ -13,16 +13,31 @@ if DATASET == 'rte':
 else:
     models = ['aviator-neural/bert-base-uncased-sst2','howey/bert-base-uncased-sst2', 'yoshitomo-matsubara/bert-base-uncased-sst2', 'ikevin98/bert-base-uncased-finetuned-sst2', 'TehranNLP-org/bert-base-uncased-cls-sst2']
 
-pipe = pipeline('text-classification', model=models[0], device='cpu', framework='pt')
-
 t0 = time.time()
-merger = WeightedMerger(models, task='text-classification')
-pipe.model = merger.merge()
-print('Merging completed. Time elapsed:', time.time()-t0)
+merged_pipe = soup(models, task='text-classification')
+dt = time.time()-t0
+print('Merging completed. Time elapsed:', dt)
 # Save the merged weights
-pipe.model.save_pretrained(f'./artifacts/merged_weights_soup_{DATASET}_{SPLIT}.pt')
+merged_pipe.model.save_pretrained(f'./artifacts/merged_weights_soup_{DATASET}_{SPLIT}')
+
+merged_pipe = pipeline('text-classification', 
+                    model=f'./artifacts/merged_weights_soup_{DATASET}_{SPLIT}', 
+                    tokenizer=models[0], 
+                    device='cuda:0', framework='pt')
 
 print('Evaluating the merged model')
 from src import evaluate_glue_pipeline
-res = evaluate_glue_pipeline(pipe, 'rte')
+res = evaluate_glue_pipeline(merged_pipe, DATASET)
 print(res)
+
+import json
+record = {
+    'method': 'soup',
+    'dataset': DATASET,
+    'split': SPLIT,
+    'directory': f'./artifacts/merged_weights_soup_{DATASET}_{SPLIT}',
+    'time': dt,
+    **res
+}
+with open(f'./artifacts/merged_weights_soup_{DATASET}_{SPLIT}/record.json', "w") as fp:
+    json.dump(record , fp) 

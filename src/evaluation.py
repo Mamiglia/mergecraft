@@ -4,21 +4,21 @@ from datasets import load_dataset
 from transformers import pipeline
 from transformers.pipelines.pt_utils import KeyPairDataset, KeyDataset
 
-def evaluate_glue_pipeline(pipeline, dataset_name):
+def evaluate_glue_pipeline(pipeline, dataset_name, split='validation'):
     dataset = load_dataset('glue', dataset_name)
     metric = load('glue', dataset_name)
 
     # Prepare the dataset
-    if dataset_name == 'rte':
-        valset = KeyPairDataset(dataset['validation'], 'sentence1', 'sentence2')
+    if dataset_name in ['rte', 'mrpc']:
+        splitset = KeyPairDataset(dataset[split], 'sentence1', 'sentence2')
+    elif dataset_name in ['sst2']:
+        splitset = KeyDataset(dataset[split], 'sentence')
     else:
-        valset = KeyDataset(dataset['validation'], 'sentence')
-    
-    # Evaluate: compute the accuracy of the model on the RTE dataset
-    predicted = pipeline(valset)
+        raise ValueError(f"Dataset {dataset_name} not supported")
+    # Evaluate: compute the accuracy of the model on the dataset
+    predicted = pipeline(splitset)
     predicted = [0 if p['label'] == 'LABEL_0' else 1 for p in predicted]
-    metric.add_batch(predictions=predicted, references=dataset['validation']['label'])
-    return metric.compute()
+    return metric.compute(predictions=predicted, references=dataset[split]['label'])
 
 if __name__=='__main__':
     PATH = './artifacts/merged_weights_rte'

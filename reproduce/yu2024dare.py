@@ -1,6 +1,8 @@
 import time
-from src import DAREMerger
+from lib import dare
+from datasets import load_dataset
 from transformers import pipeline
+import os
 
 # Load dataset and subset
 SUBSET = None
@@ -14,14 +16,35 @@ else:
 
 pipe = pipeline('text-classification', model=models[0], device='cpu', framework='pt')
 
-t0 = time.time()
-merger = DAREMerger(models, task='text-classification', base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight'], k=0.1)
-pipe.model = merger.merge()
-print('Merging completed. Time elapsed:', time.time()-t0)
-# Save the merged weights
-pipe.model.save_pretrained(f'./artifacts/merged_weights_ties_{DATASET}_{SPLIT}.pt')
+for p in [0.2, 0.3, 0.4, 0.5]:
+    t0 = time.time()
+    merged_pipe = dare(models, task='text-classification',
+                    base_index=0, p=p, 
+                    passthrough_layers=['classifier.weight', 'classifier.bias'])
+    dt = time.time()-t0
+    print('Merging completed. Time elapsed:', dt)
+    # Save the merged weights
+    merged_pipe.model.save_pretrained(f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}_{p}')
 
-print('Evaluating the merged model')
-from src import evaluate_glue_pipeline
-res = evaluate_glue_pipeline(pipe, 'rte')
-print(res)
+    merged_pipe = pipeline('text-classification', 
+                        model=f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}_{p}', 
+                        tokenizer=models[0], 
+                        device='cuda:0', framework='pt')
+
+    print('Evaluating the merged model')
+    from src import evaluate_glue_pipeline
+    res = evaluate_glue_pipeline(merged_pipe, DATASET)
+    print(p, res)
+    print('-----------------------------------')
+
+import json
+record = {
+    'method': 'DARE',
+    'dataset': DATASET,
+    'split': SPLIT,
+    'directory': f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}',
+    'time': dt,
+    **res
+}
+with open(f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}/record.json', "w") as fp:
+    json.dump(record , fp) 

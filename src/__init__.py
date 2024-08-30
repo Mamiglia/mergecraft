@@ -1,9 +1,12 @@
-from .computation.fisher import hess
-from .computation.hf_extension import HessianCallback, fisher_matrix
-from .merging.base import Merger, weighted_merging, WeightedMerger
-from .merging.stock import StockMerger 
-from .merging.ties import TIESMerger, ties_merging
-from .merging.dare import DAREMerger, dare_merging
-from .merging.task import TaskMerger, task_merging
+# from .computation.hessian import hess
+# from .computation.hf_extension import HessianCallback, add_callback
+from .arithmetics.weights_wrapper import StateDict, dict_map
+from .merging.base import model_merge
+from .merging.soup import soup, weighted_layer_merging
+# from .merging.stock import stock
+from .merging.ties import ties
+# from .merging.dare import dare
+# from .merging.task import task
+# from .merging.fisher import fisher
+
 from .evaluation import evaluate_glue_pipeline
-from .arithmetics.weights_wrapper import ArchitectureTensor
