@@ -1,7 +1,7 @@
 # from .computation.hessian import hess
 # from .computation.hf_extension import HessianCallback, add_callback
 from .arithmetics.weights_wrapper import StateDict, dict_map
-from .merging.base import model_merge
+from .merging.base import model_merge, statedict2model
 from .merging.soup import soup, weighted_layer_merging
 from .merging.stock import stock
 from .merging.ties import ties
