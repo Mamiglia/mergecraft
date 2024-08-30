@@ -1,5 +1,5 @@
 import time
-from lib import stock
+from mc import stock
 from datasets import load_dataset
 from transformers import pipeline
 import os
@@ -30,7 +30,7 @@ merged_pipe = pipeline('text-classification',
                     device='cuda:0', framework='pt')
 
 print('Evaluating the merged model')
-from src import evaluate_glue_pipeline
+from mergecraft import evaluate_glue_pipeline
 res = evaluate_glue_pipeline(merged_pipe, DATASET)
 print(res)
 

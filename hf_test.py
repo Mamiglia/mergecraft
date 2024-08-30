@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from src import fisher_matrix
+from mergecraft import fisher_matrix
 from datasets import load_dataset
 from transformers import pipeline
 from time import time

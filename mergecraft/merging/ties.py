@@ -2,7 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import List, Optional, Iterable
 from .base import model_merge
-from src.arithmetics.weights_wrapper import StateDict, dict_map
+from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
 import numpy as np
 
 @dict_map

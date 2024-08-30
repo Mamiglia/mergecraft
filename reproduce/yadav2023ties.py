@@ -1,8 +1,9 @@
 import time
-from lib import ties
 from datasets import load_dataset
 from transformers import pipeline
 import os
+
+from mc import ties
 
 # Load dataset and subset
 SUBSET = None
@@ -33,7 +34,7 @@ for k in [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]:
                         device='cuda:0', framework='pt')
 
     print('Evaluating the merged model')
-    from src import evaluate_glue_pipeline
+    from mergecraft import evaluate_glue_pipeline
     res = evaluate_glue_pipeline(merged_pipe, DATASET)
     print('K:', k, res)
     print('------------------------------------')

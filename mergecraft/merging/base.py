@@ -1,7 +1,7 @@
 from copy import deepcopy
 import torch
 from torch import nn, Tensor
-from src.arithmetics.weights_wrapper import StateDict
+from mergecraft.arithmetics.weights_wrapper import StateDict
 from typing import Iterable, Optional, Callable
 from transformers import pipeline 
 

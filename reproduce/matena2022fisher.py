@@ -1,4 +1,4 @@
-from lib import fisher
+from mc import fisher
 from transformers import pipeline
 from transformers.pipelines.pt_utils import KeyPairDataset, KeyDataset
 from datasets import load_dataset
@@ -39,7 +39,7 @@ merged_pipe = pipeline('text-classification',
                     device='cuda:0', framework='pt')
 
 print('Evaluating the merged model')
-from src import evaluate_glue_pipeline
+from mergecraft import evaluate_glue_pipeline
 res = evaluate_glue_pipeline(merged_pipe, DATASET)
 print(res)
 

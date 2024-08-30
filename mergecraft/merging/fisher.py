@@ -7,11 +7,11 @@ from transformers import pipeline, Pipeline
 from tqdm import tqdm
 import time
 import gc
-from src.arithmetics.weights_wrapper import StateDict, dict_map
+from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
 from .base import model_merge
 from ..computation.hf_extension import HessianCallback, add_callback
 
-@dict_map(names=['models', 'hessians'])
+@dict_map(['models', 'hessians'])
 def fisher_layer_merging(models: Iterable[Tensor], hessians: Iterable[Tensor], eps:float=1e-8) -> Tensor:
     '''Merges the weights of the models based on the Fisher Information Matrix diagonal approximation.
     

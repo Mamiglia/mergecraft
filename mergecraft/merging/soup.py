@@ -1,9 +1,9 @@
 from copy import deepcopy
 import torch
 from torch import nn, Tensor
-from src.arithmetics.weights_wrapper import StateDict, dict_map
+from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
 from typing import Iterable, Optional
-from src.merging.base import model_merge
+from mergecraft.merging.base import model_merge
 
 @dict_map
 def weighted_layer_merging(models: Iterable[Tensor], weights: Optional[Iterable[float | Tensor]] = None, eps:float=1e-8)-> Tensor:

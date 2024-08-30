@@ -1,5 +1,5 @@
 import time
-from lib import TaskMerger
+from mc import task
 from transformers import pipeline
 
 # Load dataset and subset
@@ -22,7 +22,7 @@ print('Merging completed. Time elapsed:', dt)
 pipe.model.save_pretrained(f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}')
 
 print('Evaluating the merged model')
-from src import evaluate_glue_pipeline
+from mergecraft import evaluate_glue_pipeline
 res = evaluate_glue_pipeline(pipe, DATASET)
 print(res)
 

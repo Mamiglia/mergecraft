@@ -2,7 +2,7 @@ import torch
 from torch import nn, Tensor
 from typing import List, Optional, Iterable
 from .base import model_merge
-from src.arithmetics.weights_wrapper import StateDict, dict_map
+from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
 
 @dict_map
 def dare_layer_merging(models: Iterable[Tensor], base_index:int=0, p: float = 0.5) -> Tensor:

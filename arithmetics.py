@@ -1,5 +1,5 @@
 from torch import nn
-from src.arithmetics.weights_wrapper import ModelTensorMapper
+from mergecraft.arithmetics.weights_wrapper import ModelTensorMapper
 from transformers import pipeline
 
 # Create pipelines for text classification using different models
