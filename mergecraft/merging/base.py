@@ -1,28 +1,13 @@
 from copy import deepcopy
-import torch
-from torch import nn, Tensor
-from mergecraft.arithmetics.weights_wrapper import StateDict
-from typing import Iterable, Optional, Callable
-from transformers import pipeline 
+from functools import wraps
+from typing import Callable, Iterable
 
-def statedict2model(sd:StateDict, model:str|nn.Module|dict, verbose:bool=False, **kwargs) -> str|nn.Module|dict:
-    '''Converts a state_dict to a model'''
-    if isinstance(model, str):
-        task = kwargs.get('task')
-        pipe = pipeline(task, model, framework='pt', device='cpu')
-        missing_keys = pipe.model.load_state_dict(sd, strict=False)
-        if verbose:
-            print('Missing keys:', missing_keys)
-        return pipe
-    if isinstance(model, nn.Module):
-        model = deepcopy(model)
-        model.load_state_dict(sd, strict=False)
-        return model
-    if isinstance(model, dict):
-        return sd
-    raise ValueError('Model must be either a path to a huggingface model, a nn.Module or a dictionary')
-        
-    
+from torch import nn
+from transformers import pipeline
+
+from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
+
+
 def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
     def wrapper(models: Iterable[str | nn.Module | dict],
                 passthrough_layers:Iterable[str] = [], verbose:bool = False,

@@ -108,6 +108,23 @@ class StateDict(OrderedDict):
     def copy(self):
         return deepcopy(self)
     
+    def to_model(self, model:str|nn.Module|dict, verbose:bool=False, **kwargs) -> str|nn.Module|dict:
+        '''Converts a state_dict to a model'''
+        if isinstance(model, str):
+            task = kwargs.get('task')
+            pipe = pipeline(task, model, framework='pt', device='cpu')
+            missing_keys = pipe.model.load_state_dict(self, strict=False)
+            if verbose:
+                print('Missing keys:', missing_keys)
+            return pipe
+        if isinstance(model, nn.Module):
+            model = deepcopy(model)
+            model.load_state_dict(self, strict=False)
+            return model
+        if isinstance(model, dict):
+            return self
+        raise ValueError('Model must be either a path to a huggingface model, a nn.Module or a dictionary')
+    
     @staticmethod
     def zeros_like(item, **kwargs):
         if isinstance(item, nn.Module):
