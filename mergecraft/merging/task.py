@@ -1,24 +1,23 @@
-import torch
-from torch import nn, Tensor
-from typing import Iterable, Optional, List
-from .base import model_merge
-from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
+from typing import Iterable, List, Optional
 
+from torch import Tensor
 
-@dict_map
-def task_merging(models: Iterable[Tensor], base_index:int=0, signs: Optional[List[int]]=None) -> Tensor:
-    """
-    Implements the model merging algorithm from the paper: 
+from mergecraft.merging.base import layer_merge
+
+@layer_merge
+def task(models: Iterable[Tensor], base_index:int=0, signs: Optional[List[int]]=None, **_) -> Tensor:
+    '''Implements the model merging algorithm from the paper: 
         "Editing Models with Task Arithmetic", Ilharco et al. 2023
     
     Args:
-    - models (Iterable[Tensor]): list of models to be merged, fine-tuned
-    - pretrained (Tensor): the base model to be merged, pre-trained
-    - k (int): the trimming factor, top-k% of the weights are kept
+    - models (Iterable): list of models to be merged, fine-tuned and baseline
+    - base_index (int): index of the baseline model which was the base for fine-tuning
+    - signs (Optional[List[int]]): list of signs for each model, indicating the direction 
+        of the task vector, i.e. whether to add or subtract the task vector from the baseline model
 
     Returns:
-    - Tensor: merged model
-    """
+    - Merged model
+    '''
     pretrained = models.pop(base_index)
         
     if signs is None:
@@ -30,8 +29,3 @@ def task_merging(models: Iterable[Tensor], base_index:int=0, signs: Optional[Lis
     tasks = [task * s for task, s in zip(tasks, signs)] 
     merged_task = sum(tasks) / len(tasks)
     return pretrained + merged_task
-
-@model_merge
-def task(models: Iterable[StateDict], base_index:int=0, signs: Optional[List[int]]=None, **kwargs) -> StateDict:
-    '''Merges the models by taking the mean of the weights'''
-    return task_merging(models, base_index, signs)

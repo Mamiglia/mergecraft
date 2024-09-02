@@ -43,3 +43,8 @@ def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
         
         return statedict2model(merged_weights, models[-1], verbose=verbose, **kwargs)
     return wrapper
+
+def layer_merge(func: Callable[[Iterable[nn.Module]], nn.Module]) -> Callable:
+    func = dict_map(func)
+    func = model_merge(func)
+    return func
