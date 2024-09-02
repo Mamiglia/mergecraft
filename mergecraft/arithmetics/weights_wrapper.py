@@ -195,7 +195,7 @@ def _dict_map_wrapper(func, names):
         assert len(common_keys) > 0, 'The input dictionaries must have at least one common key'
 
         with torch.no_grad():
-            res = {k: func(**{name: [d[k] for d in dict_args[name]] for name in names}, **kwargs) for k in common_keys}
+            res = {k: func(**{name: [d[k] for d in dict_args[name]] for name in names}, layer_name=k, **kwargs) for k in common_keys}
         return StateDict(res)
     
     return wrapper    
