@@ -1,13 +1,14 @@
-from copy import deepcopy
-import torch
-from torch import nn
-from collections import OrderedDict
-from typing import Dict, Callable, Iterable, Any#,Self # need python 3.11
-from numbers import Number
-from functools import wraps
-from torch import Tensor
-from transformers import pipeline
 import inspect
+from collections import OrderedDict
+from copy import deepcopy
+from functools import wraps
+from numbers import Number
+from typing import Any, Callable, Dict, Iterable
+
+import torch
+from torch import Tensor, nn
+from transformers import pipeline
+
 
 class StateDict(OrderedDict):
     '''A wrapper around a dictionary of tensors that provides arithmetic operations between the tensors.
@@ -30,10 +31,16 @@ class StateDict(OrderedDict):
             return self.__scalar_op__(other, torch.add)
         return self.__pair_op__(other, torch.add)
     
+    def __radd__(self, other):
+        return self.__add__(other)
+    
     def __sub__(self, other):
         if isinstance(other, Number) or isinstance(other, torch.Tensor):
             return self.__scalar_op__(other, torch.sub)
         return self.__pair_op__(other, torch.sub)
+    
+    def __rsub__(self, other):
+        return self.__sub__(other)
     
     def __mul__(self, other):
         if isinstance(other, Number) or isinstance(other, torch.Tensor):
