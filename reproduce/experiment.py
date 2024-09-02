@@ -37,7 +37,8 @@ METHODS = {
     'soup': soup,
     'dare': dare,
     'stock': stock,
-    'ties': ties
+    'ties': ties, 
+    'slerp': slerp
 }
 # METHODS.update({m:m for i,m in enumerate(MODELS)})
 
@@ -51,6 +52,7 @@ KWARGS.update({
     'dare': dict(p=0.4, base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight']),
     'stock': {'base_index': 0, 'passthrough_layers': ['classifier.bias', 'classifier.weight']},
     'ties': dict(k=0.6, base_index=0, passthrough_layers=['classifier.bias', 'classifier.weight']),
+    'slerp': {}
 })
 RECORDS = []
 

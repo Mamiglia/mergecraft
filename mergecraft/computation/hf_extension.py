@@ -1,12 +1,11 @@
-from dataclasses import dataclass
-from typing import Dict, List, Union, Any
 import torch
 from torch import nn
-from types import MethodType
 from transformers import Pipeline
 from transformers.utils.generic import ModelOutput
-from .hessian import hess
-from ..arithmetics.weights_wrapper import StateDict
+
+from mergecraft.arithmetics.weights_wrapper import StateDict
+from mergecraft.computation.hessian import hess
+
 
 class HessianCallback:
     hessian: StateDict

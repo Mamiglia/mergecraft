@@ -1,5 +1,5 @@
 import time
-from mc import task
+import mc as mergecraft
 from transformers import pipeline
 
 # Load dataset and subset
@@ -15,11 +15,11 @@ else:
 pipe = pipeline('text-classification', model=models[0], device='cpu', framework='pt')
 
 t0 = time.time()
-
+pipe = mergecraft.task(models, base_index=0, signs=None, task='text-classification')
 dt = time.time()-t0
 print('Merging completed. Time elapsed:', dt)
 # Save the merged weights
-pipe.model.save_pretrained(f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}')
+pipe.model.save_pretrained(f'./artifacts/merged_weights_task_{DATASET}_{SPLIT}')
 
 print('Evaluating the merged model')
 from mergecraft import evaluate_glue_pipeline
@@ -28,12 +28,12 @@ print(res)
 
 import json
 record = {
-    'method': 'DARE',
+    'method': 'task',
     'dataset': DATASET,
     'split': SPLIT,
-    'directory': f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}',
-    'accuracy': res.accuracy,
-    'time': dt
+    'directory': f'./artifacts/merged_weights_task_{DATASET}_{SPLIT}',
+    'time': dt,
+    **res.accuracy,
 }
-with open(f'./artifacts/merged_weights_dare_{DATASET}_{SPLIT}/record.json', "w") as fp:
+with open(f'./artifacts/merged_weights_task_{DATASET}_{SPLIT}/record.json', "w") as fp:
     json.dump(record , fp) 

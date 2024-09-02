@@ -1,7 +1,9 @@
-from typing import List, Dict
+from typing import Dict
+
 import torch
 from torch import nn
 from torch.nn import functional as F
+
 
 def hess(model: nn.Module, logits: torch.Tensor) -> Dict[str,torch.Tensor]:
     '''Computes the diagonal approximation of the Hessian of 

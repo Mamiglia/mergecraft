@@ -9,11 +9,12 @@ from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
 
 
 def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
+    @wraps(func)
     def wrapper(models: Iterable[str | nn.Module | dict],
-                passthrough_layers:Iterable[str] = [], verbose:bool = False,
+                passthrough_layers:Iterable[str] = (), verbose:bool = False,
                 *args, **kwargs) -> nn.Module:
         if isinstance(models[-1], str):
-            task = kwargs.get('task')
+            assert 'task' in kwargs, 'task must be provided when models are paths to huggingface models'
             state_dicts = [StateDict.from_hf(model, device='cpu', **kwargs) for model in models]
         elif isinstance(models[-1], nn.Module):
             state_dicts = [StateDict.from_model(model) for model in models]
@@ -41,7 +42,7 @@ def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
         merged_weights = func(state_dicts, *args, **kwargs)
         merged_weights.update(passthrough_weights)
         
-        return statedict2model(merged_weights, models[-1], verbose=verbose, **kwargs)
+        return merged_weights.to_model(models[-1], verbose=verbose, **kwargs)
     return wrapper
 
 def layer_merge(func: Callable[[Iterable[nn.Module]], nn.Module]) -> Callable:

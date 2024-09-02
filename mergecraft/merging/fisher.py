@@ -1,15 +1,19 @@
-import torch
-from torch import nn, Tensor
-from functools import cached_property
-from typing import Iterable, Optional, Any
-from types import MethodType
-from transformers import pipeline, Pipeline
-from tqdm import tqdm
-import time
 import gc
+import time
+from functools import cached_property
+from types import MethodType
+from typing import Any, Iterable, Optional
+
+import torch
+from torch import Tensor, nn
+from tqdm import tqdm
+from transformers import Pipeline, pipeline
+
 from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
-from .base import model_merge
-from ..computation.hf_extension import HessianCallback, add_callback
+
+from mergecraft.computation.hf_extension import HessianCallback, add_callback
+from mergecraft.merging.base import model_merge
+
 
 @dict_map(['models', 'hessians'])
 def fisher_layer_merging(models: Iterable[Tensor], hessians: Iterable[Tensor], eps:float=1e-8) -> Tensor:
