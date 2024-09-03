@@ -4,9 +4,11 @@
 
 ## Features
 
-- **@model_merge**: A decorator that handles the complex operations of model loading, casting, and skipped layers, allowing you to focus on the core merging logic.
-- **@dict_map**: Simplifies the process of applying layer-wise merging functions across an entire model.
-- **@layer_merge**: A powerful decorator that combines `@dict_map` and `@model_merge`, making it easier to implement straightforward merging methods.
+- Easy-to-use interface for model merging
+- Support for various merging paradigms (TIES, SLERP, DARE, etc.)
+- Seamless integration with Hugging Face models
+- Extensible architecture for implementing custom merging methods
+- Efficient handling of model loading and conversion
 
 ## Quick Start
 
