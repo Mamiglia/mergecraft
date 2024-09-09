@@ -18,6 +18,7 @@ You can evaluate your merged model on tasks like the RTE task from the GLUE benc
 
 ```python
 models = [
+    'google-bert/bert-base-uncased',
     'textattack/bert-base-uncased-RTE',
     'yoshitomo-matsubara/bert-base-uncased-rte',
     'Ruizhou/bert-base-uncased-finetuned-rte',
@@ -25,8 +26,11 @@ models = [
     'anirudh21/bert-base-uncased-finetuned-rte'
 ]
 
-from mergecraft import dare
-dare(models, task='text-classification')
+# List of layers where DARE should be skipped
+# because these layers are randomly initialized during finetuning
+rnd_layers = ['classifier.weight', 'classifier.bias']
+
+merged = mergecraft.dare(models, passthrough=rnd_layers, base_index=0)
 ```
 
 ### Example: Median Merger

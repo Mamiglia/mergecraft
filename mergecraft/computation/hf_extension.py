@@ -17,6 +17,7 @@ class HessianCallback:
         self.num_samples = 0
 
     def __call__(self, outputs: ModelOutput):
+        # can probaly be improved with functorch
         H = hess(self.model, outputs.logits)
         self.num_samples += 1
         with torch.no_grad():

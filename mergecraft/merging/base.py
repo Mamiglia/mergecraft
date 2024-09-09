@@ -3,6 +3,7 @@ from functools import wraps
 from typing import Callable, Iterable
 
 from torch import nn
+from torch import Tensor
 from transformers import pipeline
 
 from mergecraft.arithmetics.weights_wrapper import StateDict, dict_map
@@ -14,7 +15,6 @@ def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
                 passthrough_layers:Iterable[str] = (), verbose:bool = False,
                 *args, **kwargs) -> nn.Module:
         if isinstance(models[-1], str):
-            assert 'task' in kwargs, 'task must be provided when models are paths to huggingface models'
             state_dicts = [StateDict.from_hf(model, device='cpu', **kwargs) for model in models]
         elif isinstance(models[-1], nn.Module):
             state_dicts = [StateDict.from_model(model) for model in models]
@@ -45,7 +45,12 @@ def model_merge(func: Callable[[Iterable[StateDict]], StateDict]) -> Callable:
         return merged_weights.to_model(models[-1], verbose=verbose, **kwargs)
     return wrapper
 
-def layer_merge(func: Callable[[Iterable[nn.Module]], nn.Module]) -> Callable:
+def layer_merge(func: Callable[[Iterable[Tensor]], Tensor]) -> Callable:
+    '''Decorator for merging functions that simplify the merging of layers.
+    
+    Args:
+        func (function): the merging function, which takes a list of tensors and returns a tensor
+    '''
     func = dict_map(func)
     func = model_merge(func)
     return func
