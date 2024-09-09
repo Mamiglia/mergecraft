@@ -20,11 +20,11 @@ class StateDict(OrderedDict):
         return StateDict(model.named_parameters())
     
     @staticmethod
-    def from_hf(name: str, task: str, **kwargs):
+    def from_hf(name: str, **kwargs):
         from transformers import logging
         logging.set_verbosity_error()
-        model = pipeline(task, name, framework='pt', **kwargs).model
-        return StateDict.from_model(model)
+        pipe = pipeline(model=name, framework='pt', **kwargs)
+        return StateDict.from_model(pipe.model)
     
     def __add__(self, other):
         if isinstance(other, Number) or isinstance(other, torch.Tensor):
@@ -144,6 +144,8 @@ class StateDict(OrderedDict):
             return StateDict.from_hf(item, **kwargs) * 0
         raise ValueError('The input must be a nn.Module, a StateDict, a dictionary or a string')
     
+    
+
 def dict_map(func_or_names=None):
     '''Decorator that applies a function to the tensor values of a dictionary
     
