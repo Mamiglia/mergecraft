@@ -24,7 +24,7 @@ def ties(models: Iterable[Tensor], base_index:int=0, k: float = 0.1, **_) -> Ten
     del models
     
     # trim: keep only top-k% magnitude of the weights
-    magnitudes = np.abs(tasks.numpy(force=True).astype(np.half))
+    magnitudes = np.abs(tasks.numpy(force=True).astype(np.half)) # use numpy since it's more efficient for quantile computation
     threshold = np.quantile(magnitudes.flat, 1 - k)
     del magnitudes
     is_topk = tasks.abs() >= threshold
